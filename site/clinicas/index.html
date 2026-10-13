@@ -516,7 +516,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--btn);bac
 <script>
 (function(){
 "use strict";
-var CFG=Object.assign({pbUrl:"",collection:"leads",instagram:"scalio.consultoria",whatsapp:"",email:""},window.SCALIO_CONFIG||{});
+var CFG=Object.assign({webhookUrl:"",instagram:"scalio.consultoria",whatsapp:"",email:""},window.SCALIO_CONFIG||{});
 var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 var $=function(s,r){return (r||document).querySelector(s)},$$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
 $("#ig-link").href="https://ig.me/m/"+CFG.instagram;
@@ -588,10 +588,10 @@ form.addEventListener("submit",function(ev){
   var payload={name:$("#f-name").value.trim(),contact:$("#f-contact").value.trim(),company:$("#f-company").value.trim(),segment:"clinica",interest:$("#f-interest").value,message:$("#f-message").value.trim(),consent:true,source:utm(),page:location.href.slice(0,300)};
   var city=$("#f-city").value.trim();if(city)payload.city=city;var sz=$("#f-size").value;if(sz)payload.size=sz;var chl=$("#f-challenge").value;if(chl)payload.challenge=chl;
   var fallback='Se preferir, fale pelo <a href="https://ig.me/m/'+CFG.instagram+'" target="_blank" rel="noopener" style="color:inherit;font-weight:800">Instagram</a>.';
-  if(!CFG.pbUrl){show("bad","O envio por este formulário ainda não está conectado. "+fallback);return}
+  if(!CFG.webhookUrl){show("bad","O envio por este formulário ainda não está conectado. "+fallback);return}
   btn.disabled=true;btn.textContent="Enviando...";
   var ctl=new AbortController(),to=setTimeout(function(){ctl.abort()},15000);
-  fetch(CFG.pbUrl.replace(/\/$/,"")+"/api/collections/"+CFG.collection+"/records",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:ctl.signal})
+  fetch(CFG.webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:ctl.signal})
   .then(function(r){clearTimeout(to);if(!r.ok)throw new Error("http "+r.status);return r.json()})
   .then(function(){form.reset();btn.setAttribute("data-done","1");btn.textContent="Solicitação enviada";show("ok","<strong>Solicitação enviada.</strong> A equipe da Scalio vai entrar em contato pelo meio que você informou.");if(window.gtag)try{gtag("event","generate_lead",{content:"pagina-clinicas"})}catch(e){}})
   .catch(function(){btn.disabled=false;btn.textContent="Enviar solicitação";show("bad","Não foi possível enviar agora. Tente de novo em instantes. "+fallback)})

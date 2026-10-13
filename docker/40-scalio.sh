@@ -10,14 +10,14 @@ erro() { echo "[scalio] ERRO: $*" >&2; exit 1; }
 js() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\r\n'; }
 
 SITE_URL="${SITE_URL:-}"; SITE_URL="${SITE_URL%/}"
-PB_URL="${PB_URL:-}"; PB_URL="${PB_URL%/}"
+LEADS_WEBHOOK_URL="${LEADS_WEBHOOK_URL:-https://n8n.nexusdevhub.com/webhook/096735fb-68ba-4376-b005-d03d3977982c}"; LEADS_WEBHOOK_URL="${LEADS_WEBHOOK_URL%/}"
 NOINDEX=0
 
 if [ -n "$SITE_URL" ]; then
   echo "$SITE_URL" | grep -Eq '^https://[A-Za-z0-9.-]+(:[0-9]+)?$' || erro "SITE_URL inválido. Use o formato https://www.seudominio.com.br"
 fi
-if [ -n "$PB_URL" ]; then
-  echo "$PB_URL" | grep -Eq '^https?://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?$' || erro "PB_URL inválido. Use o formato https://db.seudominio.com.br"
+if [ -n "$LEADS_WEBHOOK_URL" ]; then
+  echo "$LEADS_WEBHOOK_URL" | grep -Eq '^https?://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?$' || erro "LEADS_WEBHOOK_URL inválido. Use o formato https://n8n.seudominio.com.br/webhook/..."
 fi
 
 # 1) domínio nos arquivos (canonical, imagens de compartilhamento, robots e sitemap)
@@ -40,10 +40,10 @@ else
 fi
 
 # 3) config.js a partir das variáveis de ambiente (só quando alguma estiver definida)
-if [ -n "${PB_URL}${SITE_WHATSAPP:-}${SITE_EMAIL:-}${EMPRESA_RAZAO:-}${EMPRESA_CNPJ:-}${EMPRESA_CIDADE:-}${EMPRESA_ENDERECO:-}${EMPRESA_DPO:-}${EMPRESA_FORO:-}${EMPRESA_DATA_POLITICAS:-}" ]; then
+if [ -n "${LEADS_WEBHOOK_URL}${SITE_WHATSAPP:-}${SITE_EMAIL:-}${EMPRESA_RAZAO:-}${EMPRESA_CNPJ:-}${EMPRESA_CIDADE:-}${EMPRESA_ENDERECO:-}${EMPRESA_DPO:-}${EMPRESA_FORO:-}${EMPRESA_DATA_POLITICAS:-}" ]; then
   cat > "$ROOT/config.js" <<JS
 window.SCALIO_CONFIG = Object.assign({
-  pbUrl: "$(js "$PB_URL")",
+  webhookUrl: "$(js "$LEADS_WEBHOOK_URL")",
   whatsapp: "$(js "${SITE_WHATSAPP:-}")",
   email: "$(js "${SITE_EMAIL:-}")",
   instagram: "$(js "${SITE_INSTAGRAM:-scalio.consultoria}")",
@@ -52,19 +52,19 @@ window.SCALIO_CONFIG = Object.assign({
 JS
   log "config.js gerado a partir das variáveis de ambiente"
 else
-  log "AVISO: nenhuma variável de configuração definida (PB_URL, SITE_WHATSAPP...). Os formulários mostrarão que o envio não está conectado."
+  log "AVISO: nenhuma variável de configuração definida (LEADS_WEBHOOK_URL, SITE_WHATSAPP...). Os formulários mostrarão que o envio não está conectado."
 fi
 
 # 4) cabeçalhos de segurança e configuração do nginx
-PB_ORIGIN=""
-[ -n "$PB_URL" ] && PB_ORIGIN=$(echo "$PB_URL" | sed -E 's|^(https?://[^/]+).*|\1|')
+WEBHOOK_ORIGIN=""
+[ -n "$LEADS_WEBHOOK_URL" ] && WEBHOOK_ORIGIN=$(echo "$LEADS_WEBHOOK_URL" | sed -E 's|^(https?://[^/]+).*|\1|')
 mkdir -p "$(dirname "$SNIP")" "$(dirname "$CONF")"
 {
   echo 'add_header X-Content-Type-Options "nosniff" always;'
   echo 'add_header X-Frame-Options "SAMEORIGIN" always;'
   echo 'add_header Referrer-Policy "strict-origin-when-cross-origin" always;'
   echo 'add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;'
-  echo "add_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' $PB_ORIGIN; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'\" always;"
+  echo "add_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' $WEBHOOK_ORIGIN; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'\" always;"
   [ "$NOINDEX" = "1" ] && echo 'add_header X-Robots-Tag "noindex, nofollow" always;'
   [ "${HSTS:-false}" = "true" ] && echo 'add_header Strict-Transport-Security "max-age=31536000" always;'
   true
